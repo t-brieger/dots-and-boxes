@@ -1,17 +1,52 @@
 const http = require('http');
+const { fork } = require('child_process');
 
-let lobby_id = 0;
+const { Game } = require('./game');
+
+let last_lobby = 0;
+
+const gamesInProgress = {};
 
 const server = http.createServer((req, res) => {
     // oh no
     res.setHeader("Access-Control-Allow-Origin", "*");
     if (req.url === '/creategame') {
-        res.end(`{"new_id": ${lobby_id++}}`);
-    }
-    else
-    {
+        const ourLobbyId = last_lobby;
+
+        const g = new Game();
+        gamesInProgress[ourLobbyId] = g;
+
+        for (let p = 8000; p < 8100; p++) {
+            if (!Object.values(gamesInProgress).some(v => v.port === p)) {
+                g.port = p;
+                break;
+            }
+        }
+
+        if (!g.port) {
+            res.statusCode = 500;
+            res.end("{}");
+            return;
+        }
+
+        const controller = new AbortController();
+        g.abort = controller.abort;
+        g.sub = fork(`${__dirname}/Game/GameController.js`, [`${ourLobbyId}`, `${g.port}`], { signal: controller.signal, stdio: 'pipe' });
+
+        g.sub.on('exit', () => {
+            delete gamesInProgress[ourLobbyId];
+        });
+
+        // g.sub.stdout.on('data', x => console.log(`stdout - ${ourLobbyId} - ${x}`));
+
+
+        res.end(`{"new_id": ${ourLobbyId}, "port": ${g.port}}`);
+
+
+        last_lobby++;
+    } else {
         res.statusCode = 404;
-        res.end("{}")
+        res.end("{}");
     }
 });
 

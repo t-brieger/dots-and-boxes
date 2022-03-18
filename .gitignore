@@ -1,7 +1,7 @@
 
 .idea/
 
-dnc-frontend/node_modules/
+**/node_modules/
 
 dnc-frontend/.parcel-cache/
 
