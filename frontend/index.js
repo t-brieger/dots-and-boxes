@@ -18,7 +18,8 @@ window.newgame = async () => {
 
 window.join = () => {
     const id = document.getElementById("gameid").value.trim();
-    alert(id);
+
+    window.location = `/game/index.html?id=${encodeURIComponent(id)}`;
 }
 
 document.getElementById("gameid").addEventListener("keyup", e => {

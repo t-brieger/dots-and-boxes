@@ -2,6 +2,7 @@ const express = require('express');
 const {Parcel} = require('@parcel/core');
 const {join} = require("path");
 const GameController = require("./Game/GameController");
+const {createHash} = require('crypto');
 
 const options = {
     entries: [
@@ -20,10 +21,8 @@ bundler.run();
 
 
 const PORT = process.env.PORT || 2885;
-let lastLobby = 0;
 const getNextLobbyId = () => {
-    // TODO: uuid?
-    return (lastLobby++).toString();
+    return createHash('md5').update(Date.now().toString()).digest('hex');
 }
 
 const app = express();
