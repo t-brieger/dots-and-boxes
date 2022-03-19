@@ -1,5 +1,5 @@
 window.newgame = async () => {
-    const url = `http://${process.env.SERVER_URL}:${process.env.API_PORT}/creategame`;
+    const url = `/api/creategame`;
 
     const playerNum = parseInt(document.getElementById('players').value);
     const gameWidth = parseInt(document.getElementById('width').value);

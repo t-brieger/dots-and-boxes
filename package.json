@@ -15,6 +15,7 @@
     "@parcel/core": "^2.3.2",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
+    "express-ws": "^5.0.2",
     "ws": "^8.5.0"
   },
   "optionalDependencies": {
