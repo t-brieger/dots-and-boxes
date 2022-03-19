@@ -49,7 +49,7 @@
 
     document.getElementById('changename').addEventListener('click', () => {
         sock.send(JSON.stringify({
-            type: "changename", newname: document.getElementById('namechange').value
+            type: "changename", new_name: document.getElementById('namechange').value
         }));
     });
 })();
