@@ -11,7 +11,7 @@ const options = {
     defaultConfig: '@parcel/config-default',
     mode: process.argv[2] === '--dev' ? 'development' : 'production',
     shouldDisableCache: true,
-    serveOptions: {port: process.argv[2] === '--dev' ? 3001 : 80}
+    serveOptions: {port: process.argv[2] === '--dev' ? 3001 : process.env.PORT}
 };
 if (process.argv[2] === '--dev') {
     options.hmrOptions = {port: 3001};
