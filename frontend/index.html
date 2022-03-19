@@ -6,13 +6,13 @@
     <script type="module" src="index.js"></script>
 </head>
 <body>
-    <input id="players" type="range" value="2" min="2" max="4" oninput="this.nextElementSibling.innerText = this.value + ' players'" />
+    <input id="players" type="range" value="2" min="2" max="15" oninput="this.nextElementSibling.innerText = this.value + ' players'" />
     <label for="players">2 players</label>
     <br>
-    <input id="width" type="range" value="5" min="3" max="10" oninput="this.nextElementSibling.innerText = 'Width: ' + this.value"/>
+    <input id="width" type="range" value="5" min="2" max="50" oninput="this.nextElementSibling.innerText = 'Width: ' + this.value"/>
     <label for="width">Width: 5</label>
     <br>
-    <input id="height" type="range" value="5" min="3" max="10" oninput="this.nextElementSibling.innerText = 'Height: ' + this.value" />
+    <input id="height" type="range" value="5" min="2" max="50" oninput="this.nextElementSibling.innerText = 'Height: ' + this.value" />
     <label for="height">Height: 5</label>
     <br>
     <button id="newgame" onclick="newgame()">Create New Game</button>

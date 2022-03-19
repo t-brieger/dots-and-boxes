@@ -9,6 +9,9 @@ module.exports = class GameController {
 
     turn;
 
+    grid;
+    finishedSquares;
+
     constructor(gameId, width, height, playerNum, dead) {
         this.gameId = gameId;
         this.width = width;
@@ -24,6 +27,9 @@ module.exports = class GameController {
             this.players.push(null);
 
         this.turn = (Math.random() * playerNum) & 1
+
+        this.grid = [];
+        this.finishedSquares = [];
     }
 
     doForAllClients(func) {
@@ -56,7 +62,30 @@ module.exports = class GameController {
         response.type = 'state';
         response.turn = this.turn;
 
+        response.lines = this.grid;
+
+        response.finished = this.finishedSquares;
+
         which.send(JSON.stringify(response));
+    }
+
+    isValidLine(fromX, toX, fromY, toY, sender) {
+        if (this.turn !== this.players.indexOf(sender))
+            return false;
+        if (parseInt(fromX) !== fromX || parseInt(fromY) !== fromY || parseInt(toX) !== toX || parseInt(toY) !== toY)
+            return false;
+        if (fromX - toX + fromY - toY === 0)
+            return false;
+        if (!(toX - fromX === 1 || toY - fromY === 1))
+            return false;
+        if (toX - fromX + toY - fromY !== 1)
+            return false;
+        if (fromX < 0 || toX >= this.width || fromY < 0 || toY >= this.height)
+            return false;
+
+        return this.grid.filter(l => l.from[0] === fromX && l.to[0] === toX && l.from[1] === fromY && l.to[1] === toY).length === 0;
+
+
     }
 
     onConnection(ws) {
@@ -69,10 +98,9 @@ module.exports = class GameController {
         ws.lastPong = Date.now();
         ws.name = `Player ${ws.lastPong.toString().substring(ws.lastPong.toString().length - 3)}`;
         this.doForAllClients(x => this.sendPlayerNames(x));
-        console.log(this.players.filter(p => p !== null).map(p => p.name));
 
         ws.pingInterval = setInterval(() => {
-            if (Date.now() - ws.lastPong >= 7000) {
+            if (Date.now() - ws.lastPong >= 3000) {
                 console.log("dead :(");
                 this.players[this.players.indexOf(ws)] = null;
                 this.doForAllClients(x => this.sendPlayerNames(x));
@@ -84,7 +112,7 @@ module.exports = class GameController {
                 return;
             }
             ws.send('ping');
-        }, 3000);
+        }, 1000);
 
         ws.on('message', d => this.onMessage(ws, d));
     }
@@ -97,6 +125,8 @@ module.exports = class GameController {
             return ws.lastPong = Date.now();
 
         data = JSON.parse(data);
+
+        console.log("received:", JSON.stringify(data, null, 2));
 
         if (data.type === 'changename') {
             data.new_name = data.new_name.trim().replace('\n', '');
@@ -112,6 +142,55 @@ module.exports = class GameController {
         if (data.type === 'getstate')
             this.sendState(ws);
 
-        console.log(`received: ${JSON.stringify(data, null, 2)}`);
+        if (data.type === 'turn') {
+            let {from: [fromX, fromY], to: [toX, toY]} = data;
+
+            [fromX, toX] = [Math.min(fromX, toX), Math.max(fromX, toX)];
+            [fromY, toY] = [Math.min(fromY, toY), Math.max(fromY, toY)];
+
+            if (this.isValidLine(fromX, toX, fromY, toY, ws)) {
+                console.log(`valid line: (${fromX},${fromY}) -> (${toX},${toY})`);
+                this.grid.push({from: [fromX, fromY], to: [toX, toY], by: this.players.indexOf(ws)});
+
+                const oldFinishedLength = this.finishedSquares.length;
+
+                this.finishedSquares = [];
+                const squareSides = [];
+                for (let x = -1; x < this.width; x++) {
+                    squareSides[x] = []
+                    for (let y = -1; y < this.height; y++) {
+                        squareSides[x][y] = [];
+                    }
+                }
+                for (let i = 0; i < this.grid.length; i++) {
+                    const line = this.grid[i];
+
+                    if (line.from[0] === line.to[0]) {
+                        // different y
+                        squareSides[line.from[0]][line.from[1]].push(line.by);
+                        squareSides[line.from[0] - 1][line.from[1]].push(line.by);
+                    } else {
+                        // different x
+                        squareSides[line.from[0]][line.from[1]].push(line.by);
+                        squareSides[line.from[0]][line.from[1] - 1].push(line.by);
+                    }
+                }
+
+                for (let x = 0; x < this.width - 1; x++) {
+                    for (let y = 0; y < this.height - 1; y++) {
+                        if (squareSides[x][y].length > 4)
+                            throw "wtf";
+                        if (squareSides[x][y].length === 4)
+                            this.finishedSquares.push({by: squareSides[x][y][3], x, y});
+                    }
+                }
+
+                if (this.finishedSquares.length <= oldFinishedLength)
+                    this.turn++;
+                this.turn %= this.playerNum;
+            }
+
+            this.doForAllClients(w => this.sendState(w));
+        }
     }
 }
