@@ -46,9 +46,13 @@ app.post('/creategame', (req, res) => {
         return;
     }
 
+    g.width = req.body.width || 3;
+    g.height = req.body.height || 3;
+    g.playerCount = req.body.players || 2;
+
     const controller = new AbortController();
     g.abort = controller.abort;
-    g.sub = fork(`${__dirname}/Game/GameController.js`, [`${ourLobbyId}`, `${g.port}`, `${req.body.width}`, `${req.body.height}`, `${req.body.players}`], {
+    g.sub = fork(`${__dirname}/Game/GameController.js`, [`${ourLobbyId}`, `${g.port}`, `${g.width}`, `${g.height}`, `${g.playerCount}`], {
         signal: controller.signal,
         stdio: 'pipe'
     });
@@ -64,8 +68,9 @@ app.post('/creategame', (req, res) => {
     res.end(JSON.stringify({id: ourLobbyId}));
 });
 
-app.get('/port', (req, res) => {
+app.get('/info', (req, res) => {
     if (!req.query.id || !gamesInProgress[req.query.id])
         return res.end(JSON.stringify({port: -1}));
-    res.end(JSON.stringify({port: gamesInProgress[req.query.id].port}));
+    const game = gamesInProgress[req.query.id];
+    res.end(JSON.stringify({port: game.port, width: game.width, height: game.height, players: game.playerCount}));
 })

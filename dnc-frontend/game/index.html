@@ -19,8 +19,20 @@
     </style>
 </head>
 <body id="body">
-    <svg id="svgCanvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMin" style="display: none">
-        <rect x="0" y="0" width="100%" height="100%" opacity="0.1"></rect>
-    </svg>
+<div>
+    <div style="float: left">
+        <svg id="svgCanvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMin"
+             style="display: none">
+            <rect x="0" y="0" width="100%" height="100%" opacity="0.1"></rect>
+        </svg>
+    </div>
+    <div>
+        <ul id="playerlist"></ul>
+
+        <input type="text" id="namechange"/>
+        <label for="namechange">Change Name</label>
+        <button id="changename">Change</button>
+    </div>
+</div>
 </body>
 </html>

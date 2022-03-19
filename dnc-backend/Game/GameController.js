@@ -15,16 +15,33 @@ const doaTimer = setTimeout(() => {
     process.exit(1);
 }, 3000);
 
+function sendPlayerNames(which) {
+    const response = {type: "playernames", names: [], you: players.indexOf(which)}
+    for (let i = 0; i < playerNum; i++) {
+        if (players.length > i)
+            response.names.push(players[i].name);
+        else
+            response.names.push(null);
+    }
+    which.send(JSON.stringify(response));
+}
+
+
 server.on('connection', ws => {
     clearTimeout(doaTimer);
 
     players.push(ws);
 
     ws.lastPong = Date.now();
+    let tempPlayerName = Date.now().toString();
+    ws.name = "Player " + tempPlayerName.substring(tempPlayerName.length - 3);
+
+    players.forEach(w => sendPlayerNames(w));
 
     let pingInterval = setInterval(() => {
-        if (Date.now() - ws.lastPong >= 10000) {
+        if (Date.now() - ws.lastPong >= 7000) {
             players = players.filter(x => x !== ws);
+            players.forEach(w => sendPlayerNames(w));
             if (players.length === 0) {
                 console.log("all players unresponsive, exiting");
                 process.exit(1);
@@ -33,15 +50,27 @@ server.on('connection', ws => {
             return;
         }
         ws.send('ping');
-    }, 5000);
+    }, 3000);
 
     ws.on('message', data => {
-        // none of our data will be binary - the payloads are so small that they might as well be json for convenience.
+        // none of our data will be binary - the payloads are so small that they might as well not be for convenience.
         data = data.toString();
 
         if (data === 'pong')
-            ws.lastPong = Date.now();
+            return ws.lastPong = Date.now();
 
-        console.log(`received: ${data}`);
+        data = JSON.parse(data);
+
+        if (data.type === "changename") {
+            ws.name = data.newname;
+            players.forEach(w => sendPlayerNames(w));
+        }
+
+        if (data.type === "getplayers") {
+            sendPlayerNames(ws);
+        }
+
+
+        console.log(`received: ${JSON.stringify(data, null, 2)}`);
     });
 });
