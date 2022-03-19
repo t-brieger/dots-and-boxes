@@ -1,10 +1,4 @@
-
 .idea/
-
-**/node_modules/
-
-dnc-frontend/.parcel-cache/
-
-dnc-frontend/dist/
-
-dnc-frontend/.env
+node_modules/
+dist/
+.parcel-cache/

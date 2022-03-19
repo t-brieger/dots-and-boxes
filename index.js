@@ -1,9 +1,34 @@
 const express = require('express');
-const { fork } = require('child_process');
-const { Game } = require('./game');
+const {fork} = require('child_process');
+const {Game} = require('./game');
+const {Parcel} = require('@parcel/core');
+
+const options = {
+    entries: [
+        'frontend/index.html',
+        'frontend/game/index.html'
+    ],
+    defaultConfig: '@parcel/config-default',
+    mode: process.argv[2] === '--dev' ? 'development' : 'production',
+    shouldDisableCache: true,
+    serveOptions: {port: process.argv[2] === '--dev' ? 3001 : 80}
+};
+if (process.argv[2] === '--dev') {
+    options.hmrOptions = {port: 3001};
+}
+
+let bundler = new Parcel(options);
+
+if (process.argv[2] === '--dev') {
+    // noinspection JSIgnoredPromiseFromCall
+    bundler.watch();
+} else {
+    // noinspection JSIgnoredPromiseFromCall
+    bundler.watch();
+}
 
 
-const PORT = 2885;
+const PORT = process.env.API_PORT;
 let lastLobby = 0;
 const getNextLobbyId = () => {
     // TODO: uuid?
@@ -17,8 +42,7 @@ const gamesInProgress = {};
 app.listen(PORT);
 
 app.use((req, res, next) => {
-    // oh no
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Origin", process.env.CLIENT_URL);
     res.setHeader("Access-Control-Allow-Headers", "*");
 
     res.setHeader("Content-Type", "application/json");
@@ -73,4 +97,4 @@ app.get('/info', (req, res) => {
         return res.end(JSON.stringify({port: -1}));
     const game = gamesInProgress[req.query.id];
     res.end(JSON.stringify({port: game.port, width: game.width, height: game.height, players: game.playerCount}));
-})
+});
