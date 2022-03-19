@@ -21,7 +21,7 @@
     document.getElementById('actualbody').style.display = 'initial';
     const svgCanvas = document.getElementById('svgcanvas');
 
-    const sock = new WebSocket((window.location.protocol === 'https' ? 'wss' : 'ws') +
+    const sock = new WebSocket((window.location.protocol === 'https:' ? 'wss' : 'ws') +
         `://${window.location.host}/game/${encodeURIComponent(id)}`);
 
     sock.addEventListener('open', () => {
