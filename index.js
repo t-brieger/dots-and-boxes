@@ -52,6 +52,8 @@ app.ws('/game/:id', (ws, req) => {
 app.post('/api/creategame', (req, res) => {
     const ourLobbyId = getNextLobbyId();
 
+    console.log('new game: ' + ourLobbyId);
+
     gamesInProgress[ourLobbyId] = new GameController(ourLobbyId, req.body.width || 3, req.body.height || 3,
         req.body.players || 2, () => delete gamesInProgress[ourLobbyId]);
 

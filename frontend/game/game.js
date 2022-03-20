@@ -3,6 +3,7 @@ const body = document.getElementById('body');
 const previewLine = document.getElementById('preview');
 const pointList = document.getElementById('pointslist');
 const winner = document.getElementById('winner');
+const specList = document.getElementById("speclist");
 
 // CONSTANTS
 // (i * golden_ratio) % 1.0
@@ -24,6 +25,8 @@ document.getElementById('game_id').innerText = `Game ID: ${id}`;
 
 let width, height, players, error, turn, names, ourIndex;
 const playerNames = [];
+let spectators = [];
+let weAreSpectator;
 
 let closestLine = {type: "turn", from: [0, 0], to: [0, 1]};
 
@@ -52,6 +55,16 @@ function updateState() {
             pointElements[i].innerText += " Player " + i;
         else
             pointElements[i].innerText += " " + names[i];
+    }
+
+    for (let i = 0; i < specList.children.length; )
+        specList.removeChild(specList.children[0]);
+    for (let i = 0; i < spectators.length; i++) {
+        const e = document.createElement('pre');
+        e.innerText = spectators[i];
+        const f = document.createElement('li');
+        f.appendChild(e);
+        specList.appendChild(f);
     }
 
     // turn
@@ -170,7 +183,8 @@ function updateState() {
         console.log(`received from server:`, e.json)
 
         if (e.json.type === 'playernames') {
-            ({names, you: ourIndex} = e.json);
+            ({names, you: ourIndex, spectators} = e.json);
+            weAreSpectator = ourIndex < 0;
             updateState();
         }
 
@@ -231,6 +245,9 @@ function getClosestLine(x, y) {
 }
 
 svgCanvas.addEventListener('mousemove', e => {
+    if (weAreSpectator)
+        return previewLine.style.display = "none";
+
     const svgPoint = svgCanvas.createSVGPoint();
     svgPoint.x = e.clientX;
     svgPoint.y = e.clientY;

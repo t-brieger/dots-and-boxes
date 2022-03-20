@@ -12,17 +12,25 @@ module.exports = class GameController {
     grid;
     finishedSquares;
 
+    spectators;
+
     constructor(gameId, width, height, playerNum, dead) {
+        if (width > 50 || height > 50 || playerNum > 20 || width < 2 || height < 2 || playerNum < 2)
+            return dead();
+
         this.gameId = gameId;
         this.width = width;
         this.height = height;
         this.playerNum = playerNum;
         this.dead = dead;
         this.doaTimer = setTimeout(() => {
-            console.log("dead on arrival kek");
+            console.log(`${gameId} dead on arrival`);
             this.dead();
         }, 3000);
+
         this.players = [];
+        this.spectators = [];
+
         for (let i = 0; i < playerNum; i++)
             this.players.push(null);
 
@@ -34,12 +42,13 @@ module.exports = class GameController {
 
     doForAllClients(func) {
         this.players.filter(w => w !== null).forEach(w => func(w));
+        this.spectators.forEach(w => func(w));
     }
 
     sendPlayerNames(which) {
         if (which === null)
             return;
-        const response = {type: "playernames", names: [], you: this.players.indexOf(which)}
+        const response = {type: "playernames", names: [], you: this.players.indexOf(which), spectators: []}
         for (let i = 0; i < this.playerNum; i++) {
             if (this.players[i] === null) {
                 response.names.push(null);
@@ -51,6 +60,10 @@ module.exports = class GameController {
             else
                 response.names.push(null);
         }
+
+        for (let i = 0; i < this.spectators.length; i++)
+            response.spectators.push(this.spectators[i].name);
+
         which.send(JSON.stringify(response));
     }
 
@@ -90,19 +103,23 @@ module.exports = class GameController {
 
     onConnection(ws) {
         if (this.players.indexOf(null) < 0) {
-            ws.send(JSON.stringify({error: "Lobby full."}));
-            return;
+            ws.spectator = true;
+            this.spectators.push(ws);
         }
         clearTimeout(this.doaTimer);
-        this.players[this.players.indexOf(null)] = ws;
+        if (!ws.spectator)
+            this.players[this.players.indexOf(null)] = ws;
         ws.lastPong = Date.now();
-        ws.name = `Player ${ws.lastPong.toString().substring(ws.lastPong.toString().length - 3)}`;
+        ws.name = `${ws.spectator ? 'Spectator' : 'Player'} ${ws.lastPong.toString().substring(ws.lastPong.toString().length - 3)}`;
         this.doForAllClients(x => this.sendPlayerNames(x));
 
         ws.pingInterval = setInterval(() => {
             if (Date.now() - ws.lastPong >= 3000) {
                 console.log("dead :(");
-                this.players[this.players.indexOf(ws)] = null;
+                if (ws.spectator)
+                    this.spectators = this.spectators.filter(w => w !== ws);
+                else
+                    this.players[this.players.indexOf(ws)] = null;
                 this.doForAllClients(x => this.sendPlayerNames(x));
                 if (this.players.every(w => w === null)) {
                     console.log("all players unresponsive, exiting");
@@ -114,7 +131,13 @@ module.exports = class GameController {
             ws.send('ping');
         }, 1000);
 
-        ws.on('message', d => this.onMessage(ws, d));
+        ws.on('message', d => {
+            try {
+                this.onMessage(ws, d)
+            } catch (e) {
+                console.log(`ERROR in game ${this.gameId}: ${e}`);
+            }
+        });
     }
 
     onMessage(ws, data) {
@@ -126,7 +149,7 @@ module.exports = class GameController {
 
         data = JSON.parse(data);
 
-        console.log("received:", JSON.stringify(data, null, 2));
+        //console.log("received:", JSON.stringify(data, null, 2));
 
         if (data.type === 'changename') {
             data.new_name = data.new_name.trim().replace('\n', '');
@@ -143,6 +166,9 @@ module.exports = class GameController {
             this.sendState(ws);
 
         if (data.type === 'turn') {
+            if (ws.spectator)
+                return;
+
             let {from: [fromX, fromY], to: [toX, toY]} = data;
 
             [fromX, toX] = [Math.min(fromX, toX), Math.max(fromX, toX)];
